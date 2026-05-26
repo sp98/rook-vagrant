@@ -1,0 +1,11 @@
+---
+# StorageClass for PVC-based OSD mode.
+# PersistentVolumes are created dynamically by the deploy script based on
+# the number of nodes and disks in config.yaml.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: local-storage
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer
+reclaimPolicy: Delete

@@ -1,0 +1,88 @@
+---
+# CephCluster with PVC-based OSDs
+# Uses PersistentVolumes backed by local block devices, provisioned via local-pv.yaml.
+apiVersion: ceph.rook.io/v1
+kind: CephCluster
+metadata:
+  name: rook-ceph
+  namespace: rook-ceph
+spec:
+  cephVersion:
+    image: ${CEPH_IMAGE}
+    allowUnsupported: true
+  dataDirHostPath: /var/lib/rook
+  mon:
+    count: 3
+    allowMultiplePerNode: false
+    volumeClaimTemplate:
+      spec:
+        storageClassName: local-storage
+        resources:
+          requests:
+            storage: 5Gi
+  mgr:
+    count: 1
+    allowMultiplePerNode: false
+    modules:
+      - name: rook
+        enabled: true
+  dashboard:
+    enabled: true
+    ssl: false
+  network:
+    connections:
+      encryption:
+        enabled: false
+      compression:
+        enabled: false
+  storage:
+    storageClassDeviceSets:
+      - name: set1
+        count: ${OSD_PVC_COUNT}
+        portable: false
+        tuneDeviceClass: true
+        tuneFastDeviceClass: false
+        encrypted: false
+        placement:
+          topologySpreadConstraints:
+            - maxSkew: 1
+              topologyKey: kubernetes.io/hostname
+              whenUnsatisfiable: ScheduleAnyway
+              labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - rook-ceph-osd
+        volumeClaimTemplates:
+          - metadata:
+              name: data
+            spec:
+              resources:
+                requests:
+                  storage: ${OSD_PVC_SIZE}
+              storageClassName: local-storage
+              volumeMode: Block
+              accessModes:
+                - ReadWriteOnce
+  monitoring:
+    enabled: ${MONITORING}
+  resources:
+    mon:
+      limits:
+        memory: "1Gi"
+      requests:
+        cpu: "100m"
+        memory: "256Mi"
+    osd:
+      limits:
+        memory: "2Gi"
+      requests:
+        cpu: "100m"
+        memory: "512Mi"
+    mgr:
+      limits:
+        memory: "1Gi"
+      requests:
+        cpu: "100m"
+        memory: "256Mi"

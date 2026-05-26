@@ -1,0 +1,58 @@
+---
+# CephCluster with host-based OSDs (raw devices)
+# Devices matching ^vd[b-z] are used — these are the extra virtio disks from Vagrant.
+apiVersion: ceph.rook.io/v1
+kind: CephCluster
+metadata:
+  name: rook-ceph
+  namespace: rook-ceph
+spec:
+  cephVersion:
+    image: ${CEPH_IMAGE}
+    allowUnsupported: true
+  dataDirHostPath: /var/lib/rook
+  mon:
+    count: 3
+    allowMultiplePerNode: false
+  mgr:
+    count: 1
+    allowMultiplePerNode: false
+    modules:
+      - name: rook
+        enabled: true
+  dashboard:
+    enabled: true
+    ssl: false
+  network:
+    connections:
+      encryption:
+        enabled: false
+      compression:
+        enabled: false
+  storage:
+    useAllNodes: true
+    useAllDevices: false
+    deviceFilter: "^vd[b-z]"
+    config:
+      osdsPerDevice: "1"
+  monitoring:
+    enabled: ${MONITORING}
+  resources:
+    mon:
+      limits:
+        memory: "1Gi"
+      requests:
+        cpu: "100m"
+        memory: "256Mi"
+    osd:
+      limits:
+        memory: "2Gi"
+      requests:
+        cpu: "100m"
+        memory: "512Mi"
+    mgr:
+      limits:
+        memory: "1Gi"
+      requests:
+        cpu: "100m"
+        memory: "256Mi"

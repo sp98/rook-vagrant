@@ -1,0 +1,6 @@
+disks/*.qcow2
+tmp/
+kubeconfig
+.vagrant/
+*.log
+images/*.tar

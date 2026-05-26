@@ -1,0 +1,63 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rook-ceph-tools
+  namespace: rook-ceph
+  labels:
+    app: rook-ceph-tools
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rook-ceph-tools
+  template:
+    metadata:
+      labels:
+        app: rook-ceph-tools
+    spec:
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+        - name: rook-ceph-tools
+          image: ${CEPH_IMAGE}
+          command:
+            - /bin/bash
+            - -c
+            - |
+              cp /etc/rook/client.admin.keyring /etc/ceph/keyring
+              cp /etc/rook/ceph.conf /etc/ceph/ceph.conf
+              exec /usr/bin/tail -f /dev/null
+          env:
+            - name: ROOK_CEPH_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: rook-ceph-mon
+                  key: ceph-username
+          volumeMounts:
+            - mountPath: /etc/rook
+              name: ceph-config
+          resources:
+            limits:
+              memory: "256Mi"
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+      volumes:
+        - name: ceph-config
+          projected:
+            sources:
+              - configMap:
+                  name: rook-ceph-mon-endpoints
+                  items:
+                    - key: ceph.conf
+                      path: ceph.conf
+              - secret:
+                  name: rook-ceph-mon
+                  items:
+                    - key: ceph-secret
+                      path: client.admin.keyring
+      tolerations:
+        - key: "node.kubernetes.io/unreachable"
+          operator: "Exists"
+          effect: "NoExecute"
+          tolerationSeconds: 5

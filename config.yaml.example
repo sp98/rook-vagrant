@@ -1,0 +1,63 @@
+---
+# Rook-Ceph Vagrant Cluster Configuration
+# Copy to config.yaml and customize as needed.
+
+cluster:
+  name: "rook-dev"
+  # Kubernetes version (matches pkgs.k8s.io repo channel)
+  kubernetes_version: "1.32"
+  # CNI plugin: calico | flannel
+  cni: "calico"
+
+vm:
+  # ARM64 Vagrant box (must have libvirt/qemu provider for vagrant-qemu plugin)
+  # Tested: perk/ubuntu-2204-arm64 (Ubuntu 22.04 ARM64)
+  box: "perk/ubuntu-2204-arm64"
+  # Total nodes: 1 master + (count - 1) workers. Minimum 3 for Ceph.
+  count: 3
+  cpus: 2
+  # Memory per node (use G suffix)
+  memory: "4G"
+  # Boot disk size
+  disk_size: "50G"
+
+network:
+  # Static IP base for vmnet interface (master=base, workers=base+1, base+2, ...)
+  base_ip: "192.168.105.10"
+  # IP stack mode: ipv4 | ipv6 | dual
+  stack: "ipv4"
+  # Pod and service CIDRs (used by kubeadm init)
+  pod_cidr_v4: "10.244.0.0/16"
+  pod_cidr_v6: "fd00:10:244::/48"
+  service_cidr_v4: "10.96.0.0/12"
+  service_cidr_v6: "fd00:10:96::/108"
+  # IPv6 base address for dual/ipv6 modes
+  base_ip_v6: "fd00:105::10"
+
+disks:
+  # Number of extra disks per node (for Ceph OSDs)
+  count: 2
+  # Size of each OSD disk
+  size: "20G"
+
+rook:
+  # Rook operator container image
+  operator_image: "rook/ceph:v1.16.5"
+  # Ceph container image
+  ceph_image: "quay.io/ceph/ceph:v19.2.3"
+  # OSD mode: host (raw devices) | pvc (via PersistentVolumes)
+  osd_mode: "host"
+  # Deploy CephObjectStore (S3-compatible)
+  object_store: false
+  # Deploy Ceph toolbox pod
+  toolbox: true
+
+images:
+  # Pre-load container image tarballs into cluster nodes
+  preload: false
+  # Directory containing .tar image files
+  tarball_dir: "./images"
+
+monitoring:
+  # Deploy kube-prometheus-stack + Rook ServiceMonitors
+  enabled: false

@@ -23,6 +23,9 @@ if [ "$READY_COUNT" -lt "$NODE_COUNT" ]; then
   kubectl get nodes
 fi
 
+# Allow scheduling on master (remove control-plane taint so Rook can deploy OSDs there)
+kubectl taint nodes "${CLUSTER_NAME}-master" node-role.kubernetes.io/control-plane:NoSchedule- 2>/dev/null || true
+
 # Label worker nodes
 for idx in $(seq 1 $((NODE_COUNT - 1))); do
   worker_name="${CLUSTER_NAME}-worker${idx}"

@@ -46,6 +46,9 @@ export CEPH_IMAGE="${CEPH_IMAGE}"
 export OBJECT_STORE="${OBJECT_STORE}"
 export TOOLBOX="${TOOLBOX}"
 export MONITORING="${MONITORING}"
+export ENCRYPTED_OSDS="${ENCRYPTED_OSDS}"
+export CUSTOM_BUILD="${CUSTOM_BUILD}"
+export CUSTOM_IMAGE_TAG="${CUSTOM_IMAGE_TAG}"
 export KUBECONFIG=/etc/kubernetes/admin.conf
 ENVEOF
 chmod 600 /root/rook-env.sh
@@ -55,7 +58,13 @@ echo "Installing CNI: ${CNI}"
 case "${CNI}" in
   calico)
     # Install Calico operator and CRDs
-    kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.29.1/manifests/tigera-operator.yaml
+    kubectl create -f "https://raw.githubusercontent.com/projectcalico/calico/v${CALICO_VERSION}/manifests/tigera-operator.yaml"
+
+    echo "Waiting for Installation CRD to be registered..."
+    until kubectl get crd installations.operator.tigera.io &>/dev/null; do
+      sleep 2
+    done
+    kubectl wait --for=condition=Established crd/installations.operator.tigera.io --timeout=60s
 
     # Build Installation CR based on stack mode
     case "${STACK}" in

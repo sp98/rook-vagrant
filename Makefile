@@ -24,7 +24,17 @@ up: check
 	 DISK_DIR=disks \
 	 CLUSTER_NAME=$(CLUSTER_NAME) \
 	 ./scripts/helpers/create-disks.sh
+	@CNI=$$(ruby -ryaml -e "puts YAML.load_file('config.yaml').dig('cluster','cni') || 'calico'") ; \
+	if [ "$$CNI" = "calico" ]; then \
+		./scripts/helpers/pull-calico-images.sh ; \
+	fi
 	vagrant up --provider=qemu
+	@CUSTOM_BUILD=$$(ruby -ryaml -e "puts YAML.load_file('config.yaml').dig('rook','custom_build') || false") ; \
+	if [ "$$CUSTOM_BUILD" = "true" ]; then \
+		echo "" ; \
+		echo "=== Building custom Rook operator image... ===" ; \
+		./scripts/helpers/build-rook-operator.sh --build-only ; \
+	fi
 	@echo ""
 	@echo "=== All VMs up. Running post-provision (Rook-Ceph deployment)... ==="
 	vagrant ssh $(MASTER) -c "sudo /vagrant/scripts/setup/06-post-provision.sh"
@@ -72,9 +82,14 @@ expand-osd:
 load-images:
 	./scripts/helpers/load-images.sh
 
-# Build and deploy custom Rook operator (usage: make build-rook-operator ROOK_SRC=~/rook)
+# Build and deploy custom Rook operator
+# Reads rook_source_dir from config.yaml, or override: make build-rook-operator ROOK_SRC=~/rook
 build-rook-operator:
+ifdef ROOK_SRC
 	./scripts/helpers/build-rook-operator.sh $(ROOK_SRC)
+else
+	./scripts/helpers/build-rook-operator.sh
+endif
 
 # Show Ceph dashboard URL and credentials
 dashboard:
@@ -108,6 +123,6 @@ help:
 	@echo "  make dashboard          - Show Ceph dashboard credentials"
 	@echo "  make expand-osd SIZE=+10G - Expand OSD disks"
 	@echo "  make load-images        - Load image tarballs into nodes"
-	@echo "  make build-rook-operator ROOK_SRC=<path> - Build & deploy custom operator"
+	@echo "  make build-rook-operator [ROOK_SRC=<path>] - Build & deploy custom operator"
 	@echo "  make monitoring         - Deploy Prometheus + Grafana"
 	@echo "  make objectstore        - Deploy CephObjectStore"

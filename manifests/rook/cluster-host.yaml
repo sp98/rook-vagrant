@@ -31,12 +31,12 @@ spec:
         enabled: false
   storage:
     useAllNodes: true
-    useAllDevices: false
-    deviceFilter: "^vd[b-z]"
+    useAllDevices: true
     config:
       osdsPerDevice: "1"
+      encryptedDevice: "${ENCRYPTED_OSDS}"
   monitoring:
-    enabled: ${MONITORING}
+    enabled: false
   resources:
     mon:
       limits:

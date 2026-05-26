@@ -8,6 +8,8 @@ cluster:
   kubernetes_version: "1.32"
   # CNI plugin: calico | flannel
   cni: "calico"
+  # Calico version (ignored when cni is flannel)
+  calico_version: "3.29.1"
 
 vm:
   # ARM64 Vagrant box (must have libvirt/qemu provider for vagrant-qemu plugin)
@@ -51,6 +53,17 @@ rook:
   object_store: false
   # Deploy Ceph toolbox pod
   toolbox: true
+  # Encrypt OSD devices with dm-crypt/LUKS
+  encrypted_osds: false
+  # Custom operator build settings
+  # Set custom_build: true and run 'make build-rook-operator' to build from source
+  custom_build: false
+  # Path to local Rook source code
+  rook_source_dir: "~/rook"
+  # Tag for the custom-built image
+  custom_image_tag: "local-build"
+  # Container runtime for building: docker | podman
+  container_runtime: "docker"
 
 images:
   # Pre-load container image tarballs into cluster nodes

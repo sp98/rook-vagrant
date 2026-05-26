@@ -9,6 +9,16 @@ fi
 
 echo "=== Configuring prerequisites on ${NODE_NAME} ==="
 
+# Disable unattended-upgrades to prevent dpkg lock contention
+systemctl stop unattended-upgrades 2>/dev/null || true
+systemctl disable unattended-upgrades 2>/dev/null || true
+apt-get remove -y -qq unattended-upgrades 2>/dev/null || true
+# Wait for any running dpkg/apt process to finish
+while fuser /var/lib/dpkg/lock-frontend &>/dev/null; do
+  echo "Waiting for dpkg lock..."
+  sleep 2
+done
+
 # Disable swap
 swapoff -a
 sed -i '/\sswap\s/d' /etc/fstab
@@ -18,11 +28,13 @@ cat > /etc/modules-load.d/k8s.conf <<EOF
 overlay
 br_netfilter
 rbd
+dm_crypt
 EOF
 
 modprobe overlay
 modprobe br_netfilter
 modprobe rbd || true
+modprobe dm_crypt || true
 
 # Sysctl settings for Kubernetes networking
 cat > /etc/sysctl.d/99-kubernetes.conf <<EOF
@@ -66,19 +78,9 @@ VMNET_IFACE=$(ip -o link show | awk -F': ' '{print $2}' | grep -vE '^(lo|eth0)$'
 if [ -n "$VMNET_IFACE" ]; then
   echo "Configuring static IP ${NODE_IP} on ${VMNET_IFACE}"
 
-  # Bring the interface up first
   ip link set "$VMNET_IFACE" up || true
 
-  # Flush any existing addresses and assign static IP directly
-  ip addr flush dev "$VMNET_IFACE" 2>/dev/null || true
-  ip addr add "${NODE_IP}/24" dev "$VMNET_IFACE"
-
-  # Add IPv6 address for dual-stack or ipv6 mode
-  if [ "${STACK}" = "dual" ] || [ "${STACK}" = "ipv6" ]; then
-    ip addr add "${NODE_IP_V6}/64" dev "$VMNET_IFACE"
-  fi
-
-  # Also write netplan config for persistence across reboots
+  # Write netplan config and apply
   cat > /etc/netplan/60-vmnet-static.yaml <<EOF
 network:
   version: 2
@@ -98,7 +100,15 @@ EOF
   chmod 600 /etc/netplan/60-vmnet-static.yaml
   netplan apply 2>/dev/null || true
 
-  # Verify the IP is assigned
+  # Fall back to direct assignment if netplan didn't apply
+  if ! ip addr show "$VMNET_IFACE" | grep -q "${NODE_IP}"; then
+    ip addr replace "${NODE_IP}/24" dev "$VMNET_IFACE"
+    if [ "${STACK}" = "dual" ] || [ "${STACK}" = "ipv6" ]; then
+      ip addr replace "${NODE_IP_V6}/64" dev "$VMNET_IFACE"
+    fi
+  fi
+
+  # Verify
   if ip addr show "$VMNET_IFACE" | grep -q "${NODE_IP}"; then
     echo "Static IP ${NODE_IP} assigned to ${VMNET_IFACE}"
   else

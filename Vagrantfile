@@ -15,6 +15,7 @@ CFG = YAML.load_file(CONFIG_FILE)
 CLUSTER_NAME      = CFG.dig('cluster', 'name') || 'rook-dev'
 K8S_VERSION       = CFG.dig('cluster', 'kubernetes_version') || '1.32'
 CNI               = CFG.dig('cluster', 'cni') || 'calico'
+CALICO_VERSION    = CFG.dig('cluster', 'calico_version') || '3.29.1'
 
 BOX               = CFG.dig('vm', 'box') || 'perk/ubuntu-2204-arm64'
 NODE_COUNT        = CFG.dig('vm', 'count') || 3
@@ -38,6 +39,10 @@ CEPH_IMAGE        = CFG.dig('rook', 'ceph_image') || 'quay.io/ceph/ceph:v19.2.3'
 OSD_MODE          = CFG.dig('rook', 'osd_mode') || 'host'
 OBJECT_STORE      = CFG.dig('rook', 'object_store') || false
 TOOLBOX           = CFG.dig('rook', 'toolbox') || true
+ENCRYPTED_OSDS    = CFG.dig('rook', 'encrypted_osds') || false
+
+CUSTOM_BUILD      = CFG.dig('rook', 'custom_build') || false
+CUSTOM_IMAGE_TAG  = CFG.dig('rook', 'custom_image_tag') || 'local-build'
 
 PRELOAD_IMAGES    = CFG.dig('images', 'preload') || false
 TARBALL_DIR       = CFG.dig('images', 'tarball_dir') || './images'
@@ -167,6 +172,7 @@ Vagrant.configure("2") do |config|
         'IS_MASTER'         => is_master.to_s,
         'K8S_VERSION'       => K8S_VERSION,
         'CNI'               => CNI,
+        'CALICO_VERSION'    => CALICO_VERSION,
         'STACK'             => STACK,
         'POD_NETWORK_CIDR'  => pod_network_cidr,
         'SERVICE_CIDR'      => service_cidr,
@@ -179,9 +185,12 @@ Vagrant.configure("2") do |config|
         'CEPH_IMAGE'        => CEPH_IMAGE,
         'OBJECT_STORE'      => OBJECT_STORE.to_s,
         'TOOLBOX'           => TOOLBOX.to_s,
+        'ENCRYPTED_OSDS'    => ENCRYPTED_OSDS.to_s,
         'MONITORING'        => MONITORING.to_s,
         'CLUSTER_NAME'      => CLUSTER_NAME,
-        'POD_CIDR_V4'       => POD_CIDR_V4
+        'POD_CIDR_V4'       => POD_CIDR_V4,
+        'CUSTOM_BUILD'      => CUSTOM_BUILD.to_s,
+        'CUSTOM_IMAGE_TAG'  => CUSTOM_IMAGE_TAG
       }
 
       # Add IPv6 vars if needed
@@ -231,8 +240,9 @@ SSHCONF
         path: "scripts/setup/02-kubeadm.sh",
         env: env_vars
 
-      # Pre-load images if enabled (all nodes, before cluster init)
-      if PRELOAD_IMAGES
+      # Pre-load images (all nodes, before cluster init)
+      # Always load when using Calico (images pre-pulled from quay.io to avoid Docker Hub rate limits)
+      if PRELOAD_IMAGES || CNI == 'calico'
         node.vm.provision "load-images", type: "shell",
           path: "scripts/helpers/load-images.sh",
           env: env_vars.merge({ 'TARBALL_DIR' => '/vagrant/images' })

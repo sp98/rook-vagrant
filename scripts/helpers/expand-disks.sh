@@ -50,7 +50,7 @@ parse_size_bytes() {
 # Get current disk size in bytes
 current_size_bytes() {
   local disk_path="$1"
-  qemu-img info --output=json "$disk_path" | ruby -rjson -e "puts JSON.parse(STDIN.read)['virtual-size']"
+  qemu-img info -U --output=json "$disk_path" | ruby -rjson -e "puts JSON.parse(STDIN.read)['virtual-size']"
 }
 
 # Send QMP command via the VM's QMP socket

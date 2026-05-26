@@ -65,11 +65,20 @@ EOF
 
   # Template and apply PVC-based cluster manifest
   export OSD_PVC_COUNT OSD_PVC_SIZE="${DISK_SIZE:-20Gi}"
-  envsubst < "${MANIFEST_DIR}/cluster-pvc.yaml" | kubectl apply -f -
+  envsubst < "${MANIFEST_DIR}/cluster-pvc.yaml" \
+    | sed "s/encrypted: \"${ENCRYPTED_OSDS}\"/encrypted: ${ENCRYPTED_OSDS}/" \
+    | kubectl apply -f -
 
 else
   # Template and apply host-based cluster manifest
   envsubst < "${MANIFEST_DIR}/cluster-host.yaml" | kubectl apply -f -
+fi
+
+# Enable monitoring on the CephCluster if requested
+if [ "${MONITORING}" = "true" ]; then
+  echo "Enabling monitoring on CephCluster..."
+  kubectl -n rook-ceph patch cephcluster rook-ceph --type=merge \
+    -p='{"spec":{"monitoring":{"enabled":true}}}'
 fi
 
 # Deploy RBD StorageClass

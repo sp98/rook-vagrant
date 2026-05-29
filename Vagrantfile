@@ -40,6 +40,7 @@ OSD_MODE          = CFG.dig('rook', 'osd_mode') || 'host'
 OBJECT_STORE      = CFG.dig('rook', 'object_store') || false
 TOOLBOX           = CFG.dig('rook', 'toolbox') || true
 ENCRYPTED_OSDS    = CFG.dig('rook', 'encrypted_osds') || false
+OSDS_PER_DEVICE   = CFG.dig('rook', 'osds_per_device') || 1
 
 CUSTOM_BUILD      = CFG.dig('rook', 'custom_build') || false
 CUSTOM_IMAGE_TAG  = CFG.dig('rook', 'custom_image_tag') || 'local-build'
@@ -186,6 +187,7 @@ Vagrant.configure("2") do |config|
         'OBJECT_STORE'      => OBJECT_STORE.to_s,
         'TOOLBOX'           => TOOLBOX.to_s,
         'ENCRYPTED_OSDS'    => ENCRYPTED_OSDS.to_s,
+        'OSDS_PER_DEVICE'   => OSDS_PER_DEVICE.to_s,
         'MONITORING'        => MONITORING.to_s,
         'CLUSTER_NAME'      => CLUSTER_NAME,
         'POD_CIDR_V4'       => POD_CIDR_V4,

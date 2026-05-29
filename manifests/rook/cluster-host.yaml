@@ -33,7 +33,7 @@ spec:
     useAllNodes: true
     useAllDevices: true
     config:
-      osdsPerDevice: "1"
+      osdsPerDevice: "${OSDS_PER_DEVICE}"
       encryptedDevice: "${ENCRYPTED_OSDS}"
   monitoring:
     enabled: false

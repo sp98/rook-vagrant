@@ -55,6 +55,8 @@ rook:
   toolbox: true
   # Encrypt OSD devices with dm-crypt/LUKS
   encrypted_osds: false
+  # Number of OSDs per device (host mode only; Rook partitions each disk into N OSDs)
+  osds_per_device: 1
   # Custom operator build settings
   # Set custom_build: true and run 'make build-rook-operator' to build from source
   custom_build: false

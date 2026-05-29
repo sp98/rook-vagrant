@@ -54,6 +54,8 @@ rook:
   toolbox: true
   # Encrypt OSD devices with dm-crypt/LUKS
   encrypted_osds: true
+  # Number of OSDs per device (host mode only; Rook partitions each disk into N OSDs)
+  osds_per_device: 2
   # Custom operator build settings
   custom_build: true
   rook_source_dir: "~/dev/go/src/github.com/rook/rook"

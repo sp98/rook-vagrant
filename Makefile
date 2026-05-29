@@ -12,6 +12,9 @@ check:
 	@test -S "$$(brew --prefix)/var/run/socket_vmnet" 2>/dev/null || { echo "ERROR: socket_vmnet not running. Run: brew install socket_vmnet && sudo brew services start socket_vmnet"; exit 1; }
 	@vagrant plugin list 2>/dev/null | grep -q vagrant-qemu || { echo "ERROR: vagrant-qemu plugin not found. Run: vagrant plugin install vagrant-qemu"; exit 1; }
 	@test -f config.yaml || { echo "ERROR: config.yaml not found. Run: cp config.yaml.example config.yaml"; exit 1; }
+	@RUNTIME=$$(ruby -ryaml -e "puts YAML.load_file('config.yaml').dig('rook','container_runtime') || 'docker'" 2>/dev/null || echo docker) ; \
+	 command -v "$$RUNTIME" >/dev/null 2>&1 || { echo "ERROR: $$RUNTIME not found. Install it or set rook.container_runtime in config.yaml."; exit 1; } ; \
+	 $$RUNTIME info >/dev/null 2>&1 || { echo "ERROR: $$RUNTIME is installed but the daemon is not running. Start the $$RUNTIME service."; exit 1; }
 	@echo "All prerequisites met."
 
 # Create disks, boot VMs, provision K8s + Rook-Ceph
